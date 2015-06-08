@@ -1,0 +1,9 @@
+module hello {
+
+  array [1D] Hello {
+    entry Hello();
+    entry void sayHi(int);
+    entry void sleep(int);
+  };
+
+};

@@ -1,0 +1,58 @@
+{
+  "jobs": [
+    {
+      "quantity": 100,
+      "duration": 1.0,
+      "scale": [1,2,4,8,16,32,64, 128],
+      "program": "sleep_homogeneous.swift",
+      "type": "homogeneous"
+    },
+    {
+      "quantity": 300,
+      "duration": 0.1,
+      "scale": [1,2,4,8,16,32,64],
+      "program": "sleep_homogeneous.swift",
+      "type": "homogeneous"
+    },
+    {
+      "quantity": 300,
+      "duration": 0.01,
+      "scale": [1,2,4,8,16,32,64],
+      "program": "sleep_homogeneous.swift",
+      "type": "homogeneous"
+    },
+    {
+      "quantity": 3000,
+      "duration": 0.001,
+      "scale": [1,2,4,8],
+      "program": "sleep_homogeneous.swift",
+      "type": "homogeneous"
+    },
+    {
+      "quantity": 3000,
+      "duration": 0.0,
+      "scale": [1,2,4,8,16],
+      "program": "sleep_homogeneous.swift",
+      "type": "homogeneous"
+    },
+    {
+      "type": "heterogeneous",
+      "data": "heterogeneous_wl_3min",
+      "scale": [1,2,4,8,16,32,64,128],
+      "program": "sleep_heterogeneous.swift"
+    }
+  ],
+  "header": {
+    "homogeneous":"n_nodes, n_cores, n_workers, task_quantity, sleep_time, global_time, sum_of_tasks_time",
+    "heterogeneous":"n_nodes, n_cores, n_workers, file, global_time, sum_of_tasks_time",
+    "dag":"not implemented"
+  },
+  "cores-per-node": 2,
+  "instance-type": "c3.large",
+  "ami-id": "ami-dfae87ef",
+  "log-level": "DEBUG",
+  "output-file": "results_benchmark",
+  "key-path": "./dataintensive.pem",
+  "username": "ec2-user",
+  "security-groups": ["all-traffic-allowed"]
+}
