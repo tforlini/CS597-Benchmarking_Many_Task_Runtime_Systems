@@ -1,8 +1,0 @@
-AMI = "ami-f795a2c7"
-AWSAccessKeyId = "AKIAIH3FHFZSEY5PGYYQ"
-AWSSecretKey = "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"
-instanceType = "c3.large"
-sshKey = "matrix"
-securityGroup = "sg-0789fb62"
-AwsDns = ".us-west-2.compute.amazonaws.com"
-username = "ubuntu"
