@@ -1,6 +1,6 @@
 import subprocess, os, shlex, time
 
-os.chdir("/home/thomas/workspace/sparrow-master/python")
+os.chdir("/home/thomas/workspace/sparrow-main/python")
 subprocess.call(shlex.split("echo \"\" > Finish.txt"), shell = True)
 a = shlex.split("pssh -iv -x \"-i matrix.pem -o StrictHostKeyChecking=no\" -l ubuntu -h host \"cd sparrow/python; echo \"Hello world\"\"")
 commandFrontend = "java -cp ../target/sparrow-1.0-SNAPSHOT.jar edu.berkeley.sparrow.examples.BFrontend -c ../Conf/conf.Frontend1"

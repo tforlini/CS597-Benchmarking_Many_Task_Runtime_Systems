@@ -40,7 +40,7 @@ class Swift_EC2:
         self.key_name = None
         self.security_groups = None
         self.username = None
-        self.master_flag = None
+        self.main_flag = None
         self.max_i = 0
 
     def connect(self):
@@ -54,7 +54,7 @@ class Swift_EC2:
                                           aws_secret_access_key=self.aws_secret_key)
         return conn
 
-    def launch_n_instances(self, ami_id, n, instance_type=None, master_flag=None, name=None,
+    def launch_n_instances(self, ami_id, n, instance_type=None, main_flag=None, name=None,
                            key_path=None, security_groups=None):
         """
         Launch n new EC2 instances with the given parameters and tag them with an unique and simple name.
@@ -64,8 +64,8 @@ class Swift_EC2:
         :type instance_type: str
         :param n: number of workers to launch
         :type n: int
-        :param master_flag: launch one additional node dedicated to be the master if this flag is set to True
-        :type master_flag: bool
+        :param main_flag: launch one additional node dedicated to be the main if this flag is set to True
+        :type main_flag: bool
         :param name: base name of every worker
         :type name: str
         :param key_path: path to the key to use for SSH connections
@@ -84,11 +84,11 @@ class Swift_EC2:
             self.key_basename = self.key_name.split('.')[0]
         if security_groups is not None:
             self.security_groups = security_groups
-        if master_flag is not None and self.master_flag is None:
-            self.master_flag = master_flag
+        if main_flag is not None and self.main_flag is None:
+            self.main_flag = main_flag
 
         self.log.debug("Launching %d instances" % n)
-        if self.master_flag:
+        if self.main_flag:
         	n += 1
         reservation = self.conn.run_instances(self.ami_id, key_name=self.key_basename, max_count=n,
                                               instance_type=instance_type, security_groups=security_groups)
@@ -103,9 +103,9 @@ class Swift_EC2:
         """
         self.log.debug("Tagging instances")
         for inst in instances:
-            if self.master_flag and 'master' not in self.inst_running.values():
-                tags = {'Name': 'master'}
-                self.master_flag = False
+            if self.main_flag and 'main' not in self.inst_running.values():
+                tags = {'Name': 'main'}
+                self.main_flag = False
             else:
                 tags = {'Name': "%s%d" % (self.instance_name_base, self.max_i)}
                 self.max_i += 1
@@ -167,10 +167,10 @@ class Swift_EC2:
         for inst in instances:
             if inst.state != 'running':
                 continue
-            master_flag = False
+            main_flag = False
             if 'Name' in inst.tags:
-                if inst.tags['Name'] == 'master':
-                    master_flag = True
+                if inst.tags['Name'] == 'main':
+                    main_flag = True
             ip_list.append(inst.private_ip_address)
         return ip_list
 
@@ -209,7 +209,7 @@ class Swift_EC2:
             subprocess.call(cp_key, shell=True)
             subprocess.call(cp_config, shell=True)
 
-    def deploy_app(self, program, n_workers, adlb_servers=1, args=None, copy_to_all=None, copy_to_master=None, copy_to_workers=None):
+    def deploy_app(self, program, n_workers, adlb_servers=1, args=None, copy_to_all=None, copy_to_main=None, copy_to_workers=None):
         """
         :param program: path to the Swift script to deploy
         :type program: str
@@ -221,8 +221,8 @@ class Swift_EC2:
         :type args: str
         :param copy_to_all: paths to files to copy on every running instances
         :type copy_to_all: list
-        :param copy_to_master: paths to files to copy on the master instance
-        :type copy_to_master: list
+        :param copy_to_main: paths to files to copy on the main instance
+        :type copy_to_main: list
         :param copy_to_workers: paths to files to copy on the worker instances
         :type copy_to_workers: list
         """
@@ -230,12 +230,12 @@ class Swift_EC2:
             args = ''
         if not copy_to_all:
             copy_to_all = []
-        if not copy_to_master:
-            copy_to_master = []
+        if not copy_to_main:
+            copy_to_main = []
         if not copy_to_workers:
             copy_to_workers = []
 
-        inst_master = None
+        inst_main = None
         instances = self.conn.get_only_instances()
         for inst in instances:
             if inst.state != 'running':
@@ -243,10 +243,10 @@ class Swift_EC2:
 
             self.log.debug('Pushing the program and additional files to %s.' % (inst.tags['Name']))
 
-            if inst.tags['Name'] == 'master':
-                inst_master = inst
-                # copy files specific to master
-                for file in copy_to_master:
+            if inst.tags['Name'] == 'main':
+                inst_main = inst
+                # copy files specific to main
+                for file in copy_to_main:
                     cp_script = "scp -oStrictHostKeyChecking=no -q -i %s %s %s@%s:~" % (
                         self.key_path, file, self.username, inst.ip_address)
                     subprocess.call(cp_script, shell=True)
@@ -269,11 +269,11 @@ class Swift_EC2:
             subprocess.call(cp_script, shell=True)
             last_inst = inst
 
-        if inst_master is None:
-            inst_master = last_inst
+        if inst_main is None:
+            inst_main = last_inst
 
-        # Run Swift script from master
-        ssh_client = sshclient_from_instance(inst_master, self.key_path, user_name=self.username)
+        # Run Swift script from main
+        ssh_client = sshclient_from_instance(inst_main, self.key_path, user_name=self.username)
         cmd = '''
         export ADLB_SERVERS=%d
         export ADLB_PRINT_TIME=1
