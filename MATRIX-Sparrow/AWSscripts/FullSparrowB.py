@@ -51,8 +51,8 @@ def getIps():
     
     return(pips, ips)
     
-confFilePath = "/home/thomas/workspace/sparrow-master/Conf/"
-sparrowPath = "/home/thomas/workspace/sparrow-master/"
+confFilePath = "/home/thomas/workspace/sparrow-main/Conf/"
+sparrowPath = "/home/thomas/workspace/sparrow-main/"
 
 def createBackendConf(ip):
     fd = open(confFilePath + 'conf.Backend1', 'w')
@@ -95,7 +95,7 @@ if __name__ == '__main__':
             ##push backend/sparrowconfig on all instances.
             #print "Sparrow-Benchmark - DEBUG\n    pIPS set in sparrow- conf = "+ str(pIps[:numberNodes[i]]) +"\n" 
             #raw_input("GO CHECK DNS FILE? press enter")
-            subprocess.call("cd ~/workspace/sparrow-master/python; python SparrowConfigC.py set " 
+            subprocess.call("cd ~/workspace/sparrow-main/python; python SparrowConfigC.py set " 
                             + " ".join(pIps[:numberNodes[i]]), shell = True)
             pushSConf = "pscp -t 0 -v -x \"-i matrix.pem -o StrictHostKeyChecking=no\" -l ubuntu -h dns  " + sparrowPath + "sparrow.conf /home/ubuntu/sparrow/"
                                     
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         ##        
 
         ##Push frontend to main node
-        subprocess.call("cd ~/workspace/sparrow-master/Conf; cp conf.Frontend"+ benchmarks[i] 
+        subprocess.call("cd ~/workspace/sparrow-main/Conf; cp conf.Frontend"+ benchmarks[i] 
                         +" conf.Frontend1 ", shell = True)
         
         pushFConf = ("pscp -t 0 -v -x \"-i matrix.pem -o StrictHostKeyChecking=no\" -l ubuntu -H "+ mainNodeDNS 

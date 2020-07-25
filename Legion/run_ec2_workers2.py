@@ -1,6 +1,6 @@
 #!/usr/bin/python
 '''
-Usage: run_ec2_workers.py <ami_id> [--master] [--n-workers=N] [--instance-type=I] [--name=N] [--region=R] [--security-group=S] [--key-name=K] [--runtime-system=A] [--username=U]
+Usage: run_ec2_workers.py <ami_id> [--main] [--n-workers=N] [--instance-type=I] [--name=N] [--region=R] [--security-group=S] [--key-name=K] [--runtime-system=A] [--username=U]
 
 Options:
    -i --instance-type=I   type of the instance to run [default: t2.micro]
@@ -11,7 +11,7 @@ Options:
    --name=N               generic name to give to the workers [default: worker_]
    -a --runtime-system=A  runtime system to use [default: charm]
    -u --username=U        name of the main user to connect to the instances [default: ubuntu]
-   --master               flag indicating that a master node must be launched in addition to the worker nodes
+   --main               flag indicating that a main node must be launched in addition to the worker nodes
 '''
 from docopt import docopt
 import boto.ec2
@@ -26,19 +26,19 @@ def connect(aws_access_key, aws_secret_key, region='us-west-2'):
     conn = boto.ec2.connect_to_region(region,aws_access_key_id=aws_access_key,aws_secret_access_key=aws_secret_key)
     return conn
 
-def run_ec2_workers(conn, ami_id, instance_type='t2.micro', n_workers=1,master_flag=False, name='worker_',key_name='key_clus',security_group='launch-wizard-39'):
+def run_ec2_workers(conn, ami_id, instance_type='t2.micro', n_workers=1,main_flag=False, name='worker_',key_name='key_clus',security_group='launch-wizard-39'):
     if conn is None:
         raise Exception('Need to connect to AWS before being able to run instances')
 
-    if master_flag:
+    if main_flag:
         n_workers += 1
     print "Launching %d instances" % n_workers
     reservation = conn.run_instances(ami_id, key_name=key_name,max_count=n_workers,instance_type=instance_type,security_groups=[security_group])
     print "Tagging instances"
     for i, instance in enumerate(reservation.instances):
         tags = {'Name': "%s%d" % (name, i)}
-        if i == 0 and master_flag:
-            tags['Name'] = 'master'
+        if i == 0 and main_flag:
+            tags['Name'] = 'main'
         conn.create_tags(instance.id, tags)
 
 def gen_hosts(conn, runtime_system='charm', key_name='key_clus',username='ubuntu'):
@@ -61,17 +61,17 @@ def gen_hosts(conn, runtime_system='charm', key_name='key_clus',username='ubuntu
         for inst in instances:
             if inst.state != 'running':
                 continue
-            master_flag = False
+            main_flag = False
             if 'Name' in inst.tags:
-                if inst.tags['Name'] == 'master':
-                    master_flag = True
+                if inst.tags['Name'] == 'main':
+                    main_flag = True
             hosts['swift'] += "%s\n" % inst.private_ip_address
-            if not master_flag:
+            if not main_flag:
                 hosts['legion'] += inst.private_ip_address+" "
                 hosts['charm'] += "\nhost %s" % inst.private_ip_address
             else:
-                master = inst.ip_address
-                print(master)
+                main = inst.ip_address
+                print(main)
     hosts['legion'] += "\'"
     print hosts
 
@@ -79,15 +79,15 @@ def gen_hosts(conn, runtime_system='charm', key_name='key_clus',username='ubuntu
         with open("nodelist",'a+') as nodelist_file:
             nodelist_file.write(hosts['charm'])
         abspath = os.path.abspath('nodelist')
-        print("NODE = %s" % master)
+        print("NODE = %s" % main)
         time.sleep(10)
-        cmd = "scp -oStrictHostKeyChecking=no -i %s.pem %s %s@%s:~/.nodelist"% (key_name, abspath, username, master)
+        cmd = "scp -oStrictHostKeyChecking=no -i %s.pem %s %s@%s:~/.nodelist"% (key_name, abspath, username, main)
         print cmd
         subprocess.call(cmd,shell=True)
     
     elif runtime_system == 'legion':
       time.sleep(10)
-      subprocess.call("echo %s | ssh -i %s.pem %s@%s \"cat >> ~/.bashrc\""% (hosts['legion'], key_name, username, master),shell=True)
+      subprocess.call("echo %s | ssh -i %s.pem %s@%s \"cat >> ~/.bashrc\""% (hosts['legion'], key_name, username, main),shell=True)
     
 
     elif runtime_system == 'swift':
@@ -115,8 +115,8 @@ if __name__ == '__main__':
 
     hosts = {'legion': "export GASNET_SSH_SERVERS='",'charm': "group main ++shell ssh",'swift': ""}
     args = docopt(__doc__)
-    launch_master = args['--master'] is not None
+    launch_main = args['--main'] is not None
     conn = connect(aws_access_key, aws_secret_key, args['--region'])
-    run_ec2_workers(conn,args['<ami_id>'], args['--instance-type'],int(args['--n-workers']), launch_master,args['--name'], args['--key-name'],args['--security-group'])
+    run_ec2_workers(conn,args['<ami_id>'], args['--instance-type'],int(args['--n-workers']), launch_main,args['--name'], args['--key-name'],args['--security-group'])
     gen_hosts(conn, args['--runtime-system'], key_name=args['--key-name'],username=args['--username'])
     
